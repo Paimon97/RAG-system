@@ -1,0 +1,216 @@
+{
+  "test_suite": {
+    "name": "RAG System Test - Game Installation Guide",
+    "description": "Тестовый набор для проверки качества ответов RAG системы",
+    "document": "data1.txt",
+    "tests": [
+      {
+        "id": "T001",
+        "category": "Установка и лаунчер",
+        "difficulty": "easy",
+        "question": "Где можно скачать лаунчер для игры?",
+        "expected_keywords": ["официальный", "веб-сайт", "сайт", "скачать"],
+        "expected_answer_contains": "официальный веб-сайт проекта",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T002",
+        "category": "Установка и лаунчер",
+        "difficulty": "easy",
+        "question": "Как выбрать путь для установки игры в лаунчере?",
+        "expected_keywords": ["шестерёнка", "значок", "шестеренка", "правый верхний угол"],
+        "expected_answer_contains": "шестерёнки",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T003",
+        "category": "Установка и лаунчер",
+        "difficulty": "medium",
+        "question": "Почему не рекомендуется устанавливать игру на рабочий стол?",
+        "expected_keywords": ["ошибок", "избежать", "проблем", "работоспособности"],
+        "expected_answer_contains": "избежать возможных ошибок",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T004",
+        "category": "Установка и лаунчер",
+        "difficulty": "easy",
+        "question": "Как изменить размер окна лаунчера?",
+        "expected_keywords": ["уголок", "правый нижний", "потянуть", "левая клавиша"],
+        "expected_answer_contains": "правом нижнем углу",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T005",
+        "category": "Установка и лаунчер",
+        "difficulty": "easy",
+        "question": "Куда обращаться при проблемах с установкой игры?",
+        "expected_keywords": ["Amazing Support", "поддержка", "служба поддержки"],
+        "expected_answer_contains": "Amazing Support",
+        "min_confidence": 0.7
+      },
+      {
+        "id": "T006",
+        "category": "Регистрация и никнейм",
+        "difficulty": "easy",
+        "question": "В каком формате нужно создавать игровой никнейм?",
+        "expected_keywords": ["Имя_Фамилия", "латинском", "латиница", "подчеркивание"],
+        "expected_answer_contains": "Имя_Фамилия",
+        "min_confidence": 0.7
+      },
+      {
+        "id": "T007",
+        "category": "Регистрация и никнейм",
+        "difficulty": "easy",
+        "question": "Приведи пример правильного ролевого ника.",
+        "expected_keywords": ["Vyacheslav_Ivankov", "Kirill_Litvin", "Vladlena_Ivanova"],
+        "expected_answer_contains": "Vyacheslav_Ivankov",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T008",
+        "category": "Регистрация и никнейм",
+        "difficulty": "medium",
+        "question": "Какие никнеймы запрещены в игре?",
+        "expected_keywords": ["оскорбительные", "лидеров", "администраторов", "неролевые"],
+        "expected_answer_contains": "запрещено",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T009",
+        "category": "Регистрация и никнейм",
+        "difficulty": "medium",
+        "question": "Что делать, если кнопка регистрации недоступна?",
+        "expected_keywords": ["никнейм занят", "выбрать другой", "занят"],
+        "expected_answer_contains": "никнейм уже занят",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T010",
+        "category": "Регистрация и никнейм",
+        "difficulty": "easy",
+        "question": "Какие данные нужно ввести при регистрации аккаунта?",
+        "expected_keywords": ["пароль", "электронную почту", "email", "почта"],
+        "expected_answer_contains": "пароль",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T011",
+        "category": "Игровой процесс",
+        "difficulty": "easy",
+        "question": "Что такое промокод и где его можно получить?",
+        "expected_keywords": ["ютубера", "друга", "команда", "/mn"],
+        "expected_answer_contains": "промокод",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T012",
+        "category": "Игровой процесс",
+        "difficulty": "easy",
+        "question": "Сколько стоит создание уникального промокода?",
+        "expected_keywords": ["10.000.000", "десять миллионов", "10000000"],
+        "expected_answer_contains": "10.000.000",
+        "min_confidence": 0.8
+      },
+      {
+        "id": "T013",
+        "category": "Игровой процесс",
+        "difficulty": "medium",
+        "question": "До какого уровня можно ввести промокод после регистрации?",
+        "expected_keywords": ["5 уровня", "пятого", "5"],
+        "expected_answer_contains": "5 уровня",
+        "min_confidence": 0.7
+      },
+      {
+        "id": "T014",
+        "category": "Игровой процесс",
+        "difficulty": "medium",
+        "question": "Какие документы нужно принять после регистрации?",
+        "expected_keywords": ["лицензионное соглашение", "политика конфиденциальности", "правила"],
+        "expected_answer_contains": "лицензионное соглашение",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T015",
+        "category": "Игровой процесс",
+        "difficulty": "medium",
+        "question": "Где можно прочитать лицензионное соглашение?",
+        "expected_keywords": ["официальный сайт", "сайте проекта"],
+        "expected_answer_contains": "официальном сайте",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T016",
+        "category": "Игровой процесс",
+        "difficulty": "hard",
+        "question": "Можно ли сменить пол персонажа после начала игры?",
+        "expected_keywords": ["больница", "Единая служба спасения", "сотрудники"],
+        "expected_answer_contains": "сменить пол",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T017",
+        "category": "Скины и кастомизация",
+        "difficulty": "easy",
+        "question": "Где можно сменить скин персонажа после начала игры?",
+        "expected_keywords": ["магазин одежды", "магазин"],
+        "expected_answer_contains": "магазин одежды",
+        "min_confidence": 0.7
+      },
+      {
+        "id": "T018",
+        "category": "Скины и кастомизация",
+        "difficulty": "easy",
+        "question": "За какую валюту можно приобрести скины в магазине одежды?",
+        "expected_keywords": ["игровую валюту", "игровая валюта"],
+        "expected_answer_contains": "игровую валюту",
+        "min_confidence": 0.7
+      },
+      {
+        "id": "T019",
+        "category": "Скины и кастомизация",
+        "difficulty": "medium",
+        "question": "Как можно получить уникальные скины, которых нет в магазине?",
+        "expected_keywords": ["других игроков", "торговые площадки", "обмен"],
+        "expected_answer_contains": "других игроков",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T020",
+        "category": "Скины и кастомизация",
+        "difficulty": "medium",
+        "question": "Какие аксессуары можно добавить персонажу?",
+        "expected_keywords": ["кепки", "часы", "крылья", "RGB"],
+        "expected_answer_contains": "аксессуаров",
+        "min_confidence": 0.4
+      },
+      {
+        "id": "T021",
+        "category": "Скины и кастомизация",
+        "difficulty": "hard",
+        "question": "Чем отличаются возможности мужского и женского персонажа?",
+        "expected_keywords": ["спермобанк", "скины", "навык"],
+        "expected_answer_contains": "спермобанк",
+        "min_confidence": 0.5
+      },
+      {
+        "id": "T022",
+        "category": "Технические",
+        "difficulty": "medium",
+        "question": "Какую команду нужно ввести, чтобы поделиться промокодом с другом?",
+        "expected_keywords": ["/mn", "команда", "Промокод"],
+        "expected_answer_contains": "/mn",
+        "min_confidence": 0.6
+      },
+      {
+        "id": "T023",
+        "category": "Технические",
+        "difficulty": "hard",
+        "question": "Как найти Единую службу спасения в игре?",
+        "expected_keywords": ["/gps", "Организации", "GPS"],
+        "expected_answer_contains": "/gps",
+        "min_confidence": 0.6
+      }
+    ]
+  }
+}

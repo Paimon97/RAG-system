@@ -1,0 +1,103 @@
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+from fastapi import Depends
+
+from src.services.clear_service import ClearService
+from src.services.document_service import DocumentService
+from src.services.health_service import HealthService
+from src.models.schemas import QueryRequest, UploadResponse, QueryResponse
+from src.services.container import orchestrator
+
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+router = APIRouter()
+
+@router.post("/query", response_model=QueryResponse)
+async def query(request: QueryRequest):  
+    return await orchestrator.answer(
+        question=request.question,
+        top_k=request.top_k
+    )
+
+@router.post("/documents/upload", response_model=UploadResponse)
+async def upload_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    document_service: DocumentService = Depends()
+    ):
+    
+    uploaded = await document_service.upload_document(file)
+    background_tasks.add_task(document_service.process_document, uploaded["path"])
+
+    return UploadResponse(
+        filename=uploaded["filename"],
+        status="processing"
+    )
+
+# Проверка работоспособности сервисов
+@router.get("/health")
+async def health_check(health_service: HealthService = Depends()):
+    return await health_service.get_health()
+
+# Полная очистка всех данных в Elasticsearch и Qdrant
+@router.post("/admin/clear-all")
+async def clear_all_data(clear_service: ClearService = Depends()):
+    logger.warning("Запущена полная очистка баз данных")
+    return await clear_service.clear_all()
+
+# Очистка только кэша (Redis), без удаления документов
+@router.post("/cache/clear")
+async def clear_cache(clear_service: ClearService = Depends()):
+    logger.warning("Запущена очистка кэша")
+    return await clear_service.clear_cache()
+
+# @router.get("/cache/stats")
+# async def cache_stats():
+#     """Получение статистики кэша"""
+#     try:
+#         if not cache.redis:
+#             return {
+#                 "status": "error",
+#                 "message": "Кэш не доступен"
+#             }
+        
+#         # Получаем все ключи
+#         keys = cache.redis.keys('*')
+        
+#         # Получаем информацию о каждом ключе (опционально)
+#         key_info = []
+#         for key in keys[:10]:  # Показываем только первые 10 ключей
+#             ttl = cache.redis.ttl(key)
+#             key_info.append({
+#                 "key": key,
+#                 "ttl_seconds": ttl if ttl > 0 else "persistent"
+#             })
+        
+#         return {
+#             "status": "success",
+#             "stats": {
+#                 "total_keys": len(keys),
+#                 "redis_available": True,
+#                 "sample_keys": key_info
+#             }
+#         }
+        
+#     except Exception as e:
+#         logger.error(f"Ошибка получения статистики кэша: {e}")
+#         return {
+#             "status": "error",
+#             "message": str(e)
+#         }
+    
+    
+# Удаление документа по ID
+# @app.delete("/documents/{doc_id}")
+# async def delete_document(doc_id: str):
+#     try:
+#         retriever.delete_document(doc_id)
+#         return {"status": "deleted", "doc_id": doc_id}
+#     except Exception as e:
+#         return {"status": "error", "message": str(e)}

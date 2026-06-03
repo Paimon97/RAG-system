@@ -2,9 +2,9 @@ from src.config import settings
 
 class ClearService:
 
-    def __init__(self, retriever, storage_service, redis_client):
+    def __init__(self, retriever, redis_client):
         self.retriever = retriever
-        self.storage = storage_service
+        # self.storage = storage_service
         self.redis = redis_client
 
     async def clear_all(self):

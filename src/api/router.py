@@ -1,18 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks
-from fastapi import Depends
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 
 from src.services.clear_service import ClearService
-from src.services.document_service import DocumentService
 from src.services.health_service import HealthService
+from src.services.document_service import DocumentService
+from src.api.dependencies import get_document_service, get_clear_service, get_health_service
 from src.models.schemas import QueryRequest, UploadResponse, QueryResponse
 from src.services.container import orchestrator
-
 
 import logging
 
 logger = logging.getLogger(__name__)
-
-
 router = APIRouter()
 
 @router.post("/query", response_model=QueryResponse)
@@ -26,7 +23,7 @@ async def query(request: QueryRequest):
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    document_service: DocumentService = Depends()
+    document_service: DocumentService = Depends(get_document_service)
     ):
     
     uploaded = await document_service.upload_document(file)
@@ -39,18 +36,18 @@ async def upload_document(
 
 # Проверка работоспособности сервисов
 @router.get("/health")
-async def health_check(health_service: HealthService = Depends()):
+async def health_check(health_service: HealthService = Depends(get_health_service)):
     return await health_service.get_health()
 
 # Полная очистка всех данных в Elasticsearch и Qdrant
 @router.post("/admin/clear-all")
-async def clear_all_data(clear_service: ClearService = Depends()):
+async def clear_all_data(clear_service: ClearService = Depends(get_clear_service)):
     logger.warning("Запущена полная очистка баз данных")
     return await clear_service.clear_all()
 
 # Очистка только кэша (Redis), без удаления документов
 @router.post("/cache/clear")
-async def clear_cache(clear_service: ClearService = Depends()):
+async def clear_cache(clear_service: ClearService = Depends(get_clear_service)):
     logger.warning("Запущена очистка кэша")
     return await clear_service.clear_cache()
 

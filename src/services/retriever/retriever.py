@@ -38,7 +38,7 @@ class HybridRetriever:
             collection_names = [c.name for c in collections.collections]
             
             if self.collection_name not in collection_names:
-                self.qdrant.create_collection(
+                await self.qdrant.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
                         size=settings.VECTOR_SIZE,
@@ -92,15 +92,16 @@ class HybridRetriever:
         return merged
     
     # Семантический поиск в Qdrant
+    # Добавить try except
     async def _vector_search(self, query: str, top_k: int) -> List[Dict]:
 
         # Получаем вектор запроса
-        query_vector = self.embedder.encode_query(query)
+        query_vector = self.embedder.encode_batch([query], is_query=True)
         
         # Используем метод query_points (новый API Qdrant)
         search_result = await self.qdrant.query_points(
             collection_name=self.collection_name,
-            query=query_vector.tolist(),
+            query=query_vector[0],
             limit=top_k,
             with_payload=True
             )
@@ -115,14 +116,14 @@ class HybridRetriever:
                     "score": scored_point.score,
                     "source": "semantic"
                     })
-            
-        logger.info(f"Vector search found {len(results)} results")
+        
         return results    
  
     # Лексический поиск в Elasticsearch
     async def _lexical_search(self, query: str, top_k: int) -> List[Dict]:
         try:
             # Проверяем существование индекса
+            # Если нет возвращаем пустой массив
             if not await self.es.indices.exists(index=settings.ES_INDEX):
                 logger.warning(f"Elasticsearch index {settings.ES_INDEX} does not exist")
                 return []
@@ -236,7 +237,7 @@ class HybridRetriever:
         try:
             # Получаем эмбеддинги для всех чанков
             embeddings = self.embedder.encode_batch(chunks)
-            
+
             # Создаем точки для вставки
             points = []
             for i, (chunk, embedding, meta) in enumerate(zip(chunks, embeddings, metadata)):
@@ -321,7 +322,6 @@ class HybridRetriever:
         try:
             collection_info = await self.qdrant.get_collection(self.collection_name)
             
-
             es_exists = await self.es.indices.exists(index=settings.ES_INDEX)
             es_count = 0
             if es_exists:

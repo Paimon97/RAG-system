@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 3600
     
     # Модели
-    EMBEDDING_MODEL: str = "intfloat/multilingual-e5-large"
+    EMBEDDING_MODEL: str = "ai-forever/ru-en-RoSBERTa"
     LLM_MODEL: str = "Qwen/Qwen2.5-1.5B-Instruct" #"microsoft/DialoGPT-small"
-    SUMMARIZATION_MODEL: str = "IlyaGusev/rut5_base_sum_gazeta"
+    # SUMMARIZATION_MODEL: str = "IlyaGusev/rut5_base_sum_gazeta"
 
     
     # Параметры обработки

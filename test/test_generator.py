@@ -1,213 +1,61 @@
-# test_generator_only.py
+# test_generator.py
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# Добавляем путь к проекту
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from services.generator.llm_generator import SafeLLMGenerator
+import asyncio
+from src.services.generator.llm_generator import SafeLLMGenerator
+from src.services.generator.generator_service import GenerationService
+from src.services.generator.promt_builder import PromptBuilder
+from src.services.retriever.retriever import HybridRetriever
+from src.services.embedder import EmbeddingService
+from concurrent.futures import ThreadPoolExecutor
 
-def test_generator():
-    """Тестирование генератора на разных вопросах"""
-    
-    # Инициализируем генератор
-    print("🔧 Инициализация генератора...")
+async def test_generator_with_qdrant():
+    # 1. Создаем компоненты
+    embedder = EmbeddingService()
+    retriever = HybridRetriever(embedder=embedder)
     generator = SafeLLMGenerator()
-    print("✅ Генератор готов\n")
+    prompt_builder = PromptBuilder()
+    thread_pool = ThreadPoolExecutor(max_workers=1)
     
-    # Тестовые данные (контексты из вашего data1.txt)
-    test_contexts = {
-        "лаунчер": [
-            "Для начала, Вам потребуется перейти на официальный веб-сайт проекта и скачать лаунчер. После установки лаунчера, Вы сможете загрузить игру, нажав на кнопку Загрузка внутри лаунчера."
-        ],
-        "промокод": [
-            "Создание уникального промокода стоит 10.000.000 рублей. Вы можете использовать промокод любого ютубера, обычно о нём сообщают в роликах или в описании."
-        ],
-        "никнейм": [
-            "Вам необходимо придумать уникальное имя в формате Имя_Фамилия на латинском алфавите. Примеры: Vyacheslav_Ivankov, Kirill_Litvin, Vladlena_Ivanova."
-        ],
-        "регистрация": [
-            "При регистрации Вам необходимо придумать надежный пароль и ввести Вашу электронную почту. После этого нажмите на кнопку Зарегистрироваться."
-        ],
-        "скин": [
-            "Вы можете выбрать скин, отражающий Вашу индивидуальность. В магазине одежды предлагается широкий выбор различных скинов, которые Вы можете приобрести за игровую валюту."
-        ]
-    }
+    generation_service = GenerationService(
+        llm_generator=generator,
+        prompt_builder=prompt_builder,
+        thread_pool=thread_pool
+    )
     
-    # Тестовые вопросы
-    test_cases = [
-        {
-            "name": "Тест 1: Где скачать?",
-            "query": "Где можно скачать лаунчер?",
-            "contexts": test_contexts["лаунчер"]
-        },
-        {
-            "name": "Тест 2: Сколько стоит?",
-            "query": "Сколько стоит создание промокода?",
-            "contexts": test_contexts["промокод"]
-        },
-        {
-            "name": "Тест 3: Формат ника",
-            "query": "В каком формате нужно создавать никнейм?",
-            "contexts": test_contexts["никнейм"]
-        },
-        {
-            "name": "Тест 4: Примеры ников",
-            "query": "Приведи пример правильного ника",
-            "contexts": test_contexts["никнейм"]
-        },
-        {
-            "name": "Тест 5: Регистрация",
-            "query": "Что нужно ввести при регистрации?",
-            "contexts": test_contexts["регистрация"]
-        },
-        {
-            "name": "Тест 6: Скины",
-            "query": "Где можно купить скины?",
-            "contexts": test_contexts["скин"]
-        },
-        {
-            "name": "Тест 7: Пустой контекст",
-            "query": "Что делать при ошибке?",
-            "contexts": []  # Пустой контекст
-        },
-        {
-            "name": "Тест 8: Несколько контекстов",
-            "query": "Что такое промокод?",
-            "contexts": test_contexts["промокод"] + test_contexts["лаунчер"]
-        }
-    ]
+    # 2. Вопрос пользователя
+    query = "Где можно прочитать лицензионное соглашение?"
     
-    print("=" * 70)
-    print("🧪 ЗАПУСК ТЕСТИРОВАНИЯ GENERATOR")
-    print("=" * 70)
+    # 3. Ищем контекст в Qdrant (используем метод search)
+    print(f"🔍 Ищем в Qdrant: {query}")
+    results = await retriever.search(query, top_k=3)
     
-    results = []
+    if not results:
+        print("❌ Контекст не найден в Qdrant")
+        return
     
-    for i, test in enumerate(test_cases, 1):
-        print(f"\n📋 {test['name']}")
-        print(f"   Вопрос: {test['query']}")
-        print(f"   Контекстов: {len(test['contexts'])}")
-        
-        # Генерируем ответ
-        result = generator.generate(test['query'], test['contexts'])
-        
-        print(f"   📝 Ответ: {result['answer'][:150]}...")
-        print(f"   📊 Уверенность: {result['confidence']:.2f}")
-        
-        # Оценка качества
-        quality = "✅" if result['confidence'] > 0.5 else "⚠️"
-        print(f"   {quality} Качество: {'Хорошо' if result['confidence'] > 0.5 else 'Низкое'}")
-        
-        results.append({
-            "name": test['name'],
-            "query": test['query'],
-            "answer": result['answer'],
-            "confidence": result['confidence']
-        })
-        
-        print("-" * 50)
+    # Извлекаем текст из результатов
+    contexts = [result["text"] for result in results]
     
-    # Статистика
-    print("\n" + "=" * 70)
-    print("📊 СТАТИСТИКА")
-    print("=" * 70)
+    print(f"✅ Найдено {len(contexts)} контекстов")
+    for i, ctx in enumerate(contexts[:2], 1):
+        print(f"📄 Контекст {i}: {ctx[:1000]}...")
     
-    avg_confidence = sum(r['confidence'] for r in results) / len(results)
-    high_quality = sum(1 for r in results if r['confidence'] > 0.5)
+    # 4. Генерируем ответ
+    print(f"🤖 Генерируем ответ...")
+    response = await generation_service.generate(query, contexts)
     
-    print(f"Всего тестов: {len(results)}")
-    print(f"Средняя уверенность: {avg_confidence:.2f}")
-    print(f"Хороших ответов (>0.5): {high_quality}/{len(results)}")
+    # 5. Результат
+    print(f"\n❓ Вопрос: {query}")
+    print(f"💡 Ответ: {response}")
     
-    return results
-
-def test_edge_cases():
-    """Тестирование граничных случаев"""
-    print("\n" + "=" * 70)
-    print("🔍 ТЕСТИРОВАНИЕ ГРАНИЧНЫХ СЛУЧАЕВ")
-    print("=" * 70)
+    # 6. Закрываем соединения
+    await retriever.close()
     
-    generator = SafeLLMGenerator()
-    
-    edge_tests = [
-        {
-            "name": "Очень длинный вопрос",
-            "query": "Где " * 100 + "скачать лаунчер?",
-            "contexts": ["Скачать лаунчер можно на официальном сайте."]
-        },
-        {
-            "name": "Очень длинный контекст",
-            "query": "Где скачать лаунчер?",
-            "contexts": ["Длинный текст. " * 200]
-        },
-        {
-            "name": "Спецсимволы в запросе",
-            "query": "Где скачать лаунчер?!!! @#$%",
-            "contexts": ["Скачать лаунчер можно на сайте."]
-        },
-        {
-            "name": "Пустой ответ генератора",
-            "query": "Сложный вопрос без ответа",
-            "contexts": ["Просто случайный текст."]
-        }
-    ]
-    
-    for test in edge_tests:
-        print(f"\n📋 {test['name']}")
-        result = generator.generate(test['query'], test['contexts'])
-        print(f"   Ответ: {result['answer'][:100]}...")
-        print(f"   Уверенность: {result['confidence']:.2f}")
-        print(f"   Длина ответа: {len(result['answer'])} символов")
-
-def test_accuracy_with_expected():
-    """Тестирование точности с ожидаемыми ключевыми словами"""
-    print("\n" + "=" * 70)
-    print("🎯 ТЕСТИРОВАНИЕ ТОЧНОСТИ")
-    print("=" * 70)
-    
-    generator = SafeLLMGenerator()
-    
-    accuracy_tests = [
-        {
-            "query": "Где скачать лаунчер?",
-            "context": "Скачать лаунчер можно на официальном сайте проекта.",
-            "expected": ["официальный", "сайт", "скачать"]
-        },
-        {
-            "query": "Сколько стоит промокод?",
-            "context": "Создание уникального промокода стоит 10.000.000 рублей.",
-            "expected": ["10.000.000", "рублей"]
-        },
-        {
-            "query": "Формат никнейма?",
-            "context": "Никнейм должен быть в формате Имя_Фамилия.",
-            "expected": ["Имя_Фамилия", "формат"]
-        }
-    ]
-    
-    passed = 0
-    for test in accuracy_tests:
-        result = generator.generate(test['query'], [test['context']])
-        answer_lower = result['answer'].lower()
-        
-        found = [kw for kw in test['expected'] if kw.lower() in answer_lower]
-        is_passed = len(found) > 0
-        
-        print(f"\nВопрос: {test['query']}")
-        print(f"Ответ: {result['answer'][:100]}")
-        print(f"Ожидаемые слова: {', '.join(test['expected'])}")
-        print(f"Найдено: {', '.join(found) if found else 'НИЧЕГО'}")
-        print(f"Результат: {'✅' if is_passed else '❌'}")
-        
-        if is_passed:
-            passed += 1
-    
-    print(f"\nТочность: {passed}/{len(accuracy_tests)} ({passed/len(accuracy_tests)*100:.0f}%)")
+    print("\n✅ Тест пройден!")
 
 if __name__ == "__main__":
-    # Запускаем все тесты
-    test_generator()
-    # test_edge_cases()
-    # test_accuracy_with_expected()
+    asyncio.run(test_generator_with_qdrant())

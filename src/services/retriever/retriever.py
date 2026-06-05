@@ -175,7 +175,7 @@ class HybridRetriever:
         # Обрабатываем семантические результаты
         for rank, result in enumerate(vector_results):
             # Создаем ключ из текста (первые 100 символов)
-            key = result["text"][:100] if result["text"] else str(rank)
+            key = result["text"][:1000] if result["text"] else str(rank)
             
             if key not in merged_dict:
                 merged_dict[key] = {
@@ -191,7 +191,7 @@ class HybridRetriever:
         
         # Обрабатываем лексические результаты
         for rank, result in enumerate(lexical_results):
-            key = result["text"][:100] if result["text"] else str(rank)
+            key = result["text"][:1000] if result["text"] else str(rank)
             
             if key not in merged_dict:
                 merged_dict[key] = {

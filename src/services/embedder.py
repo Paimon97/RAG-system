@@ -16,7 +16,7 @@ class EmbeddingService:
  
     @torch.no_grad()
     def encode_batch(self, texts: list, is_query: bool = False) -> np.ndarray:
-        prefix = "query:" if is_query else "passage: "
+        prefix = "query: " if is_query else "passage: "
         texts = [prefix + t for t in texts]
         
         return self.model.encode(

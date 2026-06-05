@@ -19,7 +19,7 @@ nlp = spacy.load("ru_core_news_sm")
 embedder = EmbeddingService()
 chunker = TextChunker(nlp_model=nlp)
 cache = CacheService()
-validator = HallucinationGuard()
+validator = HallucinationGuard(embedder=embedder)
 
 retriever = HybridRetriever(embedder=embedder)
 generator = SafeLLMGenerator()
@@ -41,7 +41,7 @@ generation_service = GenerationService(
 )
 
 orchestrator = RAGOrchestrator(
-    retrieval=retriever,
+    retriever=retriever,
     generation_service=generation_service,
     validator=validator,
     cache=cache

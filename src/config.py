@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Параметры обработки
     CHUNK_SIZE: int = 400  # 
     CHUNK_OVERLAP: int = 50
-    TOP_K_RESULTS: int = 2
+    TOP_K_RESULTS: int = 3
     CONFIDENCE_THRESHOLD: float = 0.8
     MAX_SEQUENCE_LENGTH: int = 216  # Явное ограничение
     SUMMARIZATION_MAX_INPUT_TOKENS: int = 1024

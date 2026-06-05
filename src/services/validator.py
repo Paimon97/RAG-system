@@ -3,9 +3,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
 class HallucinationGuard:
-    def __init__(self):
+    def __init__(self, embedder):
         self.nlp = spacy.load("ru_core_news_sm")
-        self.similarity_model = SentenceTransformer('distiluse-base-multilingual-cased-v1')
+        self.similarity_model = embedder
     
     def is_hallucination(self, answer: str, context: str) -> bool:
         # Извлечение сущностей

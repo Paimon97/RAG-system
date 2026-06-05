@@ -1,0 +1,108 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # Qdrant - векторная база данных
+  qdrant:
+    image: qdrant/qdrant:v1.11.1
+    container_name: amazing_rag_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+    networks:
+      - rag_network
+
+  # Elasticsearch - для лексического поиска
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: amazing_rag_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_storage:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    networks:
+      - rag_network
+
+  # Redis - для кэширования
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: amazing_rag_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_storage:/data
+    command: redis-server --appendonly yes --appendfilename redis.aof
+    restart: unless-stopped
+    networks:
+      - rag_network
+
+  # Ваше FastAPI приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amazing_rag_app
+    ports:
+      - "8000:8000"
+    volumes:
+      # Исправлено: монтируем src в /app/src (НЕ /src)
+      - ./src:/app/src
+      # Данные
+      - ./data:/app/data
+      # Тесты (у вас папка test, не tests!)
+      - ./test:/app/test
+      # Кэш моделей (чтобы не качать каждый раз)
+      - ./models_cache:/app/models_cache
+      # Монтируем корневые файлы конфигурации
+      - ./.env:/app/.env
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      # Подключения к сервисам (имена контейнеров)
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - ES_HOST=http://elasticsearch:9200
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Пути внутри контейнера
+      - PYTHONPATH=/app
+      - MODELS_CACHE=/app/models_cache
+      # Отключаем телеметрию
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - TRANSFORMERS_CACHE=/app/models_cache
+      # Для разработки
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - qdrant
+      - elasticsearch
+      - redis
+    restart: unless-stopped
+    networks:
+      - rag_network
+    # Команда запуска (путь к main.py внутри контейнера)
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Тома для хранения данных (persistent volumes)
+volumes:
+  qdrant_storage:
+    driver: local
+  es_storage:
+    driver: local
+  redis_storage:
+    driver: local
+
+# Сеть для коммуникации между сервисами
+networks:
+  rag_network:
+    driver: bridge

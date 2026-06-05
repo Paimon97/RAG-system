@@ -2,8 +2,8 @@ import asyncio
 
 class GenerationService:
 
-    def __init__(self, generator, prompt_builder, thread_pool):
-        self.generator = generator
+    def __init__(self, llm_generator, prompt_builder, thread_pool):
+        self.llm_generator = llm_generator
         self.prompt_builder = prompt_builder
         self.thread_pool = thread_pool
 
@@ -15,7 +15,7 @@ class GenerationService:
 
         response = await loop.run_in_executor(
             self.thread_pool,
-            self.generator.generate,
+            self.llm_generator.generate,
             prompt
         )
 

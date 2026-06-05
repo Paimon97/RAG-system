@@ -36,31 +36,3 @@ class EmbeddingService:
     # Параметр batch_size=8. 
     # Он указывает модели, сколько текстов обрабатывать одновременно за одну итерацию. 
     # 
-
-
-           # # Установка максимальной длины для токенизатора
-        # self.max_seq_length = settings.MAX_SEQUENCE_LENGTH
-        # self.model.max_seq_length = self.max_seq_length
-        
-        # # Явно задаем max_length для токенизатора
-        # if hasattr(self.model, 'tokenizer'):
-        #     self.model.tokenizer.model_max_length = self.max_seq_length
-    
-    # Для запроса пользователя
-    # @torch.no_grad()
-    # def encode_query(self, text: str) -> np.ndarray:
-    #     return self.model.encode(
-    #         f"query: {text}",
-    #         normalize_embeddings=True,
-    #         show_progress_bar=False
-    #     )
-    
-    # # Для контекста
-    # @torch.no_grad()
-    # def encode_passage(self, text: str) -> np.ndarray:
-    #     return self.model.encode(
-    #         f"passage: {text}",
-    #         normalize_embeddings=True,
-    #         show_progress_bar=False
-    #     )
-    

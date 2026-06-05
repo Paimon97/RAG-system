@@ -1,6 +1,6 @@
 from src.services.generator.generator_service import GenerationService
 from src.services.generator.promt_builder import PromptBuilder
-from src.services.retriever.retriever_service import RetrievalService
+# from src.services.retriever.retriever_service import RetrievalService
 from src.orchestration.rag_orchestrator import RAGOrchestrator
 from src.pipeline.chunker import TextChunker
 from src.services.embedder import EmbeddingService
@@ -35,7 +35,7 @@ processor = DocumentProcessor(
 # retrieval_service = RetrievalService()
 
 generation_service = GenerationService(
-    generator=generator, 
+    llm_generator=generator, 
     prompt_builder=prompt_builder, 
     thread_pool=thread_pool
 )

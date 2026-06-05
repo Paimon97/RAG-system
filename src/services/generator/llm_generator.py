@@ -37,7 +37,6 @@ class SafeLLMGenerator:
         )
 
         with torch.no_grad():
-
             outputs = self.model.generate(
                 inputs.input_ids,
                 max_new_tokens=128,
@@ -51,3 +50,15 @@ class SafeLLMGenerator:
         )
 
         return self._extract_answer(text)
+    
+    def _extract_answer(self, text: str) -> str:
+        # Ищем стандартный маркер ответа из prompt_builder
+        if "Ответ:" in text:
+            # Берем всё, что после "Ответ:"
+            answer = text.split("Ответ:", 1)[-1].strip()
+            return answer
+        
+        # Если маркера нет, возвращаем весь текст
+        return text.strip()
+
+# 

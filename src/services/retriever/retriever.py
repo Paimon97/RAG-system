@@ -1,18 +1,19 @@
+# src/services/retriever/retriever.py
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
-from qdrant_client.http import models as rest
+from qdrant_client.models import Distance, VectorParams
 from elasticsearch import AsyncElasticsearch
 
 from src.config import settings
 
-import uuid
-import asyncio
 from typing import List, Dict
 import logging
 
 logger = logging.getLogger(__name__)
 
+
 class HybridRetriever:
+    """Гибридный поиск: семантический + лексический"""
+    
     def __init__(self, embedder):
         self.qdrant = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
         self.es = AsyncElasticsearch(settings.ES_HOST)
@@ -29,7 +30,7 @@ class HybridRetriever:
                 await self.es.close()
         except Exception as e:
             logger.error(f"Ошибка при закрытии соединений: {e}")
-        
+
     async def initialize(self):
         """Инициализация коллекций и индексов"""
         try:
@@ -56,16 +57,9 @@ class HybridRetriever:
                     body={
                         "mappings": {
                             "properties": {
-                                "text": {
-                                    "type": "text",
-                                    "analyzer": "standard"
-                                },
-                                "metadata": {
-                                    "type": "object"
-                                },
-                                "doc_id": {
-                                    "type": "keyword"
-                                }
+                                "text": {"type": "text", "analyzer": "standard"},
+                                "metadata": {"type": "object"},
+                                "doc_id": {"type": "keyword"}
                             }
                         }
                     }
@@ -76,10 +70,9 @@ class HybridRetriever:
                 
         except Exception as e:
             logger.error(f"Initialization error: {e}")
-    
-    # Гибридный поиск: семантический + лексический
+
     async def search(self, query: str, top_k: int = 5) -> List[Dict]:
-        
+        """Гибридный поиск: семантический + лексический"""
         # Семантический поиск в Qdrant
         vector_results = await self._vector_search(query, top_k)
         
@@ -90,40 +83,42 @@ class HybridRetriever:
         merged = self._fusion_results(vector_results, lexical_results, top_k)
         
         return merged
-    
-    # Семантический поиск в Qdrant
-    # Добавить try except
-    async def _vector_search(self, query: str, top_k: int) -> List[Dict]:
 
-        # Получаем вектор запроса
-        query_vector = self.embedder.encode_batch([query], is_query=True)
-        
-        # Используем метод query_points (новый API Qdrant)
-        search_result = await self.qdrant.query_points(
-            collection_name=self.collection_name,
-            query=query_vector[0],
-            limit=top_k,
-            with_payload=True
-            )
+    async def _vector_search(self, query: str, top_k: int) -> List[Dict]:
+        """Семантический поиск в Qdrant"""
+        try:
+            # Получаем вектор запроса
+            query_vector = self.embedder.encode_batch([query], is_query=True)
             
-        # Форматируем результаты
-        results = []
-        for scored_point in search_result.points:
-            if scored_point.payload:
-                results.append({
-                    "text": scored_point.payload.get("text", ""),
-                    "metadata": scored_point.payload.get("metadata", {}),
-                    "score": scored_point.score,
-                    "source": "semantic"
+            # Используем метод query_points (новый API Qdrant)
+            search_result = await self.qdrant.query_points(
+                collection_name=self.collection_name,
+                query=query_vector[0],
+                limit=top_k,
+                with_payload=True
+            )
+                
+            # Форматируем результаты
+            results = []
+            for scored_point in search_result.points:
+                if scored_point.payload:
+                    results.append({
+                        "text": scored_point.payload.get("text", ""),
+                        "metadata": scored_point.payload.get("metadata", {}),
+                        "score": scored_point.score,
+                        "source": "semantic"
                     })
-        
-        return results    
- 
-    # Лексический поиск в Elasticsearch
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Vector search error: {e}")
+            return []
+
     async def _lexical_search(self, query: str, top_k: int) -> List[Dict]:
+        """Лексический поиск в Elasticsearch"""
         try:
             # Проверяем существование индекса
-            # Если нет возвращаем пустой массив
             if not await self.es.indices.exists(index=settings.ES_INDEX):
                 logger.warning(f"Elasticsearch index {settings.ES_INDEX} does not exist")
                 return []
@@ -161,10 +156,9 @@ class HybridRetriever:
         except Exception as e:
             logger.error(f"Lexical search error: {e}")
             return []
-    
-    # Слияние результатов с Reciprocal Rank Fusion
+
     def _fusion_results(self, vector_results: List[Dict], lexical_results: List[Dict], top_k: int) -> List[Dict]:
-        
+        """Слияние результатов с Reciprocal Rank Fusion"""
         # Если нет результатов, возвращаем пустой список
         if not vector_results and not lexical_results:
             return []
@@ -174,14 +168,14 @@ class HybridRetriever:
         
         # Обрабатываем семантические результаты
         for rank, result in enumerate(vector_results):
-            # Создаем ключ из текста (первые 100 символов)
+            # Создаем ключ из текста (первые 1000 символов)
             key = result["text"][:1000] if result["text"] else str(rank)
             
             if key not in merged_dict:
                 merged_dict[key] = {
                     "text": result["text"],
                     "metadata": result["metadata"],
-                    "rrf_score": 1.0 / (60 + rank + 1),  # RRF формула
+                    "rrf_score": 1.0 / (60 + rank + 1),
                     "semantic_score": result["score"],
                     "lexical_score": 0
                 }
@@ -213,125 +207,3 @@ class HybridRetriever:
         )
         
         return sorted_results[:top_k]
-    
-    # Добавление документа в обе базы данных
-    async def add_document(self, chunks: List[str], metadata: List[Dict]) -> str:
-        try:
-            doc_id = str(uuid.uuid4())
-            
-            # Добавляем в Qdrant
-            await self._add_to_qdrant(chunks, metadata, doc_id)
-            
-            # Добавляем в Elasticsearch
-            await self._add_to_elasticsearch(chunks, metadata, doc_id)
-            
-            logger.info(f"Document {doc_id} added successfully with {len(chunks)} chunks")
-            return doc_id
-            
-        except Exception as e:
-            logger.error(f"Error adding document: {e}")
-            raise
-    
-    # """Добавление чанков в Qdrant"""
-    async def _add_to_qdrant(self, chunks: List[str], metadata: List[Dict], doc_id: str):
-        try:
-            # Получаем эмбеддинги для всех чанков
-            embeddings = self.embedder.encode_batch(chunks)
-
-            # Создаем точки для вставки
-            points = []
-            for i, (chunk, embedding, meta) in enumerate(zip(chunks, embeddings, metadata)):
-                point = PointStruct(
-                    id=str(uuid.uuid4()),
-                    vector=embedding.tolist(),
-                    payload={
-                        "doc_id": doc_id,
-                        "chunk_index": i,
-                        "text": chunk,
-                        "metadata": meta
-                    }
-                )
-                points.append(point)
-            
-            # Вставляем точки в коллекцию
-            if points:
-                await self.qdrant.upsert(
-                    collection_name=self.collection_name,
-                    points=points
-                )
-                logger.info(f"Added {len(points)} points to Qdrant")
-                
-        except Exception as e:
-            logger.error(f"Error adding to Qdrant: {e}")
-            raise
-    
-    # """Добавление чанков в Elasticsearch"""
-    async def _add_to_elasticsearch(self, chunks: List[str], metadata: List[Dict], doc_id: str):
-        try:
-            for i, (chunk, meta) in enumerate(zip(chunks, metadata)):
-                doc = {
-                    "text": chunk,
-                    "metadata": meta,
-                    "doc_id": doc_id,
-                    "chunk_index": i
-                }
-                
-                await self.es.index(
-                    index=settings.ES_INDEX,
-                    body=doc
-                )
-            
-            logger.info(f"Added {len(chunks)} documents to Elasticsearch")
-                
-        except Exception as e:
-            logger.error(f"Error adding to Elasticsearch: {e}")
-            raise
-    
-    async def delete_document(self, doc_id: str):
-        try:
-            # Удаление из Qdrant
-            await self.qdrant.delete(
-                collection_name=self.collection_name,
-                points_selector=Filter(
-                    must=[
-                        FieldCondition(
-                            key="doc_id",
-                            match=MatchValue(value=doc_id)
-                        )
-                    ]
-                )
-            )
-            
-            # Удаление из Elasticsearch
-            await self.es.delete_by_query(
-                index=settings.ES_INDEX,
-                body={
-                    "query": {
-                        "term": {"doc_id": doc_id}
-                    }
-                }
-            )
-            
-            logger.info(f"Document {doc_id} deleted successfully")
-            
-        except Exception as e:
-            logger.error(f"Error deleting document: {e}")
-            raise
-    
-    async def get_collection_info(self) -> Dict:
-        try:
-            collection_info = await self.qdrant.get_collection(self.collection_name)
-            
-            es_exists = await self.es.indices.exists(index=settings.ES_INDEX)
-            es_count = 0
-            if es_exists:
-                count_result = await self.es.count(index=settings.ES_INDEX)
-                es_count = count_result["count"]
-            
-            return {
-                "qdrant_points": collection_info.points_count if hasattr(collection_info, 'points_count') else 0,
-                "elasticsearch_docs": es_count
-            }
-        except Exception as e:
-            logger.error(f"Error getting collection info: {e}")
-            return {"qdrant_points": 0, "elasticsearch_docs": 0}

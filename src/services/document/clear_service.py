@@ -2,8 +2,8 @@ from src.config import settings
 
 class ClearService:
 
-    def __init__(self, retriever, redis_client):
-        self.retriever = retriever
+    def __init__(self, document_manager, redis_client):
+        self.document_manager = document_manager
         # self.storage = storage_service
         self.redis = redis_client
 
@@ -11,13 +11,13 @@ class ClearService:
         # 1. Очистка Elasticsearch
         try:
             # Проверяем существует ли индекс
-            if await self.retriever.es.indices.exists(index=settings.ES_INDEX):
+            if await self.document_manager.es.indices.exists(index=settings.ES_INDEX):
                 # Удаляем индекс
-                await self.retriever.es.indices.delete(index=settings.ES_INDEX)
+                await self.document_manager.es.indices.delete(index=settings.ES_INDEX)
 
             
             # Создаем индекс заново
-            await self.retriever.es.indices.create(
+            await self.document_manager.es.indices.create(
                 index=settings.ES_INDEX,
                 body={
                     "mappings": {
@@ -40,17 +40,17 @@ class ClearService:
         # 2. Очистка Qdrant
         try:
             # Проверяем существует ли коллекция
-            collections = await self.retriever.qdrant.get_collections()
+            collections = await self.document_manager.qdrant.get_collections()
             collection_names = [c.name for c in collections.collections]
             
             if settings.QDRANT_COLLECTION in collection_names:
                 # Удаляем коллекцию
-                await self.retriever.qdrant.delete_collection(collection_name=settings.QDRANT_COLLECTION)
+                await self.document_manager.qdrant.delete_collection(collection_name=settings.QDRANT_COLLECTION)
             
             # Создаем коллекцию заново
             from qdrant_client.models import Distance, VectorParams
             
-            await self.retriever.qdrant.create_collection(
+            await self.document_manager.qdrant.create_collection(
                 collection_name=settings.QDRANT_COLLECTION,
                 vectors_config=VectorParams(
                     size=settings.VECTOR_SIZE,

@@ -21,10 +21,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "ai-forever/ru-en-RoSBERTa"
     LLM_MODEL: str = "Qwen/Qwen2.5-1.5B-Instruct" #"microsoft/DialoGPT-small"
     # SUMMARIZATION_MODEL: str = "IlyaGusev/rut5_base_sum_gazeta"
-
     
     # Параметры обработки
-    CHUNK_SIZE: int = 400  # 
+    CHUNK_SIZE: int = 300  # 
     CHUNK_OVERLAP: int = 50
     TOP_K_RESULTS: int = 3
     CONFIDENCE_THRESHOLD: float = 0.8

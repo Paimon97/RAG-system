@@ -61,8 +61,8 @@ services:
       - ./src:/app/src
       # Данные
       - ./data:/app/data
-      # Тесты (у вас папка test, не tests!)
-      - ./test:/app/test
+      # Тесты 
+      - ./test:/app/tests
       # Кэш моделей (чтобы не качать каждый раз)
       - ./models_cache:/app/models_cache
       # Монтируем корневые файлы конфигурации
@@ -91,7 +91,7 @@ services:
     networks:
       - rag_network
     # Команда запуска (путь к main.py внутри контейнера)
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn src.main:app --host 127.0.0.1 --port 8000 --reload
 
 # Тома для хранения данных (persistent volumes)
 volumes:

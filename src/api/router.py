@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 
-from src.services.clear_service import ClearService
-from src.services.health_service import HealthService
-from src.services.document_service import DocumentService
+from src.services.document.clear_service import ClearService
+from src.services.document.health_service import HealthService
+from src.services.document.document_service import DocumentService
 from src.api.dependencies import get_document_service, get_clear_service, get_health_service
 from src.models.schemas import QueryRequest, UploadResponse, QueryResponse
 from src.services.container import orchestrator

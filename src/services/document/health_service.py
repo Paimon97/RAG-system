@@ -1,13 +1,13 @@
 class HealthService:
 
-    def __init__(self, retriever, cache):
-        self.retriever = retriever
+    def __init__(self, document_manager, cache):
+        self.document_manager = document_manager
         self.cache = cache
 
     async def get_health(self):
 
         try:
-            collection_info = (await self.retriever.get_collection_info())
+            collection_info = (await self.document_manager.get_collection_info())
             return {
                 "status": "healthy",
                 "qdrant": collection_info.get("qdrant_points", 0),

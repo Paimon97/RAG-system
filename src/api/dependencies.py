@@ -1,7 +1,7 @@
-from src.services.container import processor, retriever, cache
-from src.services.document_service import DocumentService
-from src.services.clear_service import ClearService
-from src.services.health_service import HealthService
+from src.services.container import processor, document_manager, cache
+from src.services.document.document_service import DocumentService
+from src.services.document.clear_service import ClearService
+from src.services.document.health_service import HealthService
 from src.config import settings
 from fastapi import HTTPException, Header
 
@@ -13,10 +13,10 @@ async def get_document_service() -> DocumentService:
 
 async def get_clear_service() -> ClearService:
     # Исправленный ClearService (без storage_service)
-    return ClearService(retriever, cache)
+    return ClearService(document_manager, cache)
 
 async def get_health_service() -> HealthService:
-    return HealthService(retriever, cache)
+    return HealthService(document_manager, cache)
 
 # Защита admin-эндпоинтов
 # async def verify_admin_token(admin_token: str = Header(..., alias="X-Admin-Token")):

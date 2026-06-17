@@ -5,6 +5,7 @@ from src.orchestration.rag_orchestrator import RAGOrchestrator
 from src.pipeline.chunker import TextChunker
 from src.services.embedder import EmbeddingService
 from src.services.retriever.retriever import HybridRetriever
+from src.services.document.document_manager import DocumentManager
 from src.services.generator.llm_generator import SafeLLMGenerator
 from src.services.validator import HallucinationGuard
 from src.pipeline.processor import DocumentProcessor
@@ -25,11 +26,18 @@ retriever = HybridRetriever(embedder=embedder)
 generator = SafeLLMGenerator()
 prompt_builder = PromptBuilder()
 
+document_manager = DocumentManager(
+    qdrant_client=retriever.qdrant,
+    es_client=retriever.es,
+    embedder=embedder,
+    collection_name=retriever.collection_name
+)
+
 processor = DocumentProcessor(
     nlp_model=nlp,
     chunker=chunker,
-    embedder=embedder,
-    retriever=retriever
+    embedder=embedder,          
+    document_manager=document_manager
 )
 
 # retrieval_service = RetrievalService()

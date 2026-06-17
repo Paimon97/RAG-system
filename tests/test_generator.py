@@ -27,7 +27,7 @@ async def test_generator_with_qdrant():
     )
     
     # 2. Вопрос пользователя
-    query = "Где можно прочитать лицензионное соглашение?"
+    query = "Где находится служба поддержки Amazing Support?"
     
     # 3. Ищем контекст в Qdrant (используем метод search)
     print(f"🔍 Ищем в Qdrant: {query}")

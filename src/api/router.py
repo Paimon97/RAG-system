@@ -1,5 +1,4 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
-
 from src.services.document.clear_service import ClearService
 from src.services.document.health_service import HealthService
 from src.services.document.document_service import DocumentService
@@ -12,6 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Принимает ответ пользователя и возвращает ответ на основе документа.
 @router.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):  
     return await orchestrator.answer(
@@ -19,14 +19,25 @@ async def query(request: QueryRequest):
         top_k=request.top_k
     )
 
+# Загрузка страницы сразу из WIKI
+@router.post("/wiki/import")
+async def import_wiki(
+    url: str,
+    document_service: DocumentService = Depends(get_document_service)
+):
+    return await document_service.import_wiki(url)
+
+# Загрузка нового txt документа для индексации.
 @router.post("/documents/upload", response_model=UploadResponse)
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     document_service: DocumentService = Depends(get_document_service)
     ):
-    
+    # Сохарняет файл на диск. Возвращает информацию о сохраненом файле пути.
     uploaded = await document_service.upload_document(file)
+    # Добавляет асинхронную фоновую задачу для обработки документа.
+    # Обработка выполняется после отправки ответа.
     background_tasks.add_task(document_service.process_document, uploaded["path"])
 
     return UploadResponse(
@@ -41,7 +52,7 @@ async def health_check(health_service: HealthService = Depends(get_health_servic
 
 # Полная очистка всех данных в Elasticsearch и Qdrant
 @router.post("/admin/clear-all")
-async def clear_all_data(clear_service: ClearService = Depends(get_clear_service)):
+async def clear_all_data(clear_service: ClearService = Depends(get_clear_service)): # _: bool = Depends(verify_admin_token),
     logger.warning("Запущена полная очистка баз данных")
     return await clear_service.clear_all()
 

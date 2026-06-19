@@ -15,15 +15,43 @@ class DocumentProcessor:
         self.nlp = nlp_model
     
     async def process_document(self, file_path: str):
-        # Чтение файла
         with open(file_path, "r", encoding="utf-8") as f:
-            text = f.read()
+            html = f.read()
 
-        """Перед разбитием на чанки надо добавить подготовку текста"""
+        sections = self.section_parser.extract_sections(html)
 
-        # Разбитие на чанки
-        chunks = self.chunker._spacy_split(text)
-        
+        chunks = []
+        base_metadata = []
+
+        for section in sections:
+
+            section_chunks = self.chunker._spacy_split(
+                section["text"]
+            )
+
+            for chunk in section_chunks:
+
+                enriched_chunk = "\n".join(
+                    filter(
+                        None,
+                        [
+                            section["h1"],
+                            section["h2"],
+                            section["h3"],
+                            chunk
+                        ]
+                    )
+                )
+
+                chunks.append(enriched_chunk)
+
+                base_metadata.append({
+                    "source": file_path,
+                    "h1": section["h1"],
+                    "h2": section["h2"],
+                    "h3": section["h3"]
+                })
+
         # Семафор для ограничения количества одновременно выполняемых задач 
         semaphore = asyncio.Semaphore(10)
         
@@ -48,6 +76,75 @@ class DocumentProcessor:
             
         return {
             "source": file_path,
+            "chunk_index": idx,
+            "tags": tags,
+            "chunk_length": len(chunk),
+            "total_chunks": total_chunks
+        }
+
+    async def process_sections(self, sections: list[dict], source_url: str):
+
+        chunks = []
+        metadata = []
+
+        for section in sections:
+
+            section_chunks = self.chunker._spacy_split(section["text"])
+
+            for chunk in section_chunks:
+                enriched_chunk = "\n".join(
+                    filter(
+                        None,
+                        [
+                            section["h1"],
+                            section["h2"],
+                            section["h3"],
+                            chunk
+                        ]
+                    )
+                )
+
+                chunks.append(enriched_chunk)
+
+                metadata.append(
+                    {
+                        "source_url": source_url,
+                        "h1": section["h1"],
+                        "h2": section["h2"],
+                        "h3": section["h3"]
+                    }
+                )
+
+        semaphore = asyncio.Semaphore(10)
+
+        async def process_with_limit(chunk, idx, base_meta):
+            async with semaphore:
+                return await self._process_chunk_with_metadata(chunk, idx, base_meta, len(chunks))
+
+        tasks = [
+            process_with_limit(
+                chunk,
+                i,
+                metadata[i]
+            )
+
+            for i, chunk in enumerate(chunks)
+        ]
+
+        final_metadata = await asyncio.gather(*tasks)
+
+        await self.document_manager.add_document(chunks, final_metadata)
+
+        return final_metadata
+    
+    async def _process_chunk_with_metadata(self, chunk: str, idx: int, base_metadata: dict, total_chunks: int):
+
+        loop = asyncio.get_event_loop()
+
+        tags = await loop.run_in_executor(None, self._extract_tags, chunk)
+
+        return {
+            **base_metadata,
             "chunk_index": idx,
             "tags": tags,
             "chunk_length": len(chunk),

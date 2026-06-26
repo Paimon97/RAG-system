@@ -21,7 +21,7 @@ class RAGOrchestrator:
         # RETRIEVAL
         try:
             contexts = await asyncio.wait_for(
-                self.retrieval.search(question, top_k),
+                self.retriever.search(question, top_k),
                 timeout=50.0
             )
         except asyncio.TimeoutError:
@@ -96,11 +96,13 @@ class RAGOrchestrator:
         # Вычисляем уверенность на основе количества найденных контекстов
         confidence = min(0.9, len(contexts) * 0.3)  # Чем больше контекстов, тем выше уверенность
         
+        context_str = "\n\n".join([c.get("text", "") for c in contexts if c and isinstance(c, dict)])
+
         result = QueryResponse(
             answer=answer_text, 
             confidence=confidence,
             sources=[c.get("metadata", {}) for c in contexts if c],
-            context=contexts
+            context=context_str
         )
 
         # # SAVE CACHE

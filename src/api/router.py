@@ -2,7 +2,8 @@ from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 from src.services.document.clear_service import ClearService
 from src.services.document.health_service import HealthService
 from src.services.document.document_service import DocumentService
-from src.api.dependencies import get_document_service, get_clear_service, get_health_service
+from src.services.html_parser.html_service import HTMLDocumentService
+from src.api.dependencies import get_html_service, get_document_service, get_clear_service, get_health_service
 from src.models.schemas import QueryRequest, UploadResponse, QueryResponse
 from src.services.container import orchestrator
 
@@ -18,14 +19,6 @@ async def query(request: QueryRequest):
         question=request.question,
         top_k=request.top_k
     )
-
-# Загрузка страницы сразу из WIKI
-@router.post("/wiki/import")
-async def import_wiki(
-    url: str,
-    document_service: DocumentService = Depends(get_document_service)
-):
-    return await document_service.import_wiki(url)
 
 # Загрузка нового txt документа для индексации.
 @router.post("/documents/upload", response_model=UploadResponse)

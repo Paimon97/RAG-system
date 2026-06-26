@@ -1,0 +1,42 @@
+{
+  "id": "fa506df2d790bc80",
+  "title": "Коины",
+  "url": "https://wiki.amazing-online.com/index.php?title=%D0%9A%D0%BE%D0%B8%D0%BD%D1%8B",
+  "source": "amazing_online_wiki",
+  "extracted_at": "2026-06-26T14:30:33.818254",
+  "total_sections": 4,
+  "sections": [
+    {
+      "section_id": "fa506df2d790bc80_0000",
+      "heading": "\"МП\" COIN",
+      "level": 2,
+      "text": "как выглядит \"мп\" coin \"мп\" coin используется в мини-играх в компьютерном клубе . с помощью них можно приобрести различные улучшения , например:",
+      "word_count": 22,
+      "char_count": 144
+    },
+    {
+      "section_id": "fa506df2d790bc80_0001",
+      "heading": "Как получить \"МП\" COIN",
+      "level": 3,
+      "text": "\"мп\" coin можно получить играя в мини-игры в компьютерном клубе или приобрести их у игроков на центральном рынке .",
+      "word_count": 19,
+      "char_count": 114
+    },
+    {
+      "section_id": "fa506df2d790bc80_0002",
+      "heading": "\"AMAZING\" COIN",
+      "level": 2,
+      "text": "как выглядит \"amazing\" coin \"amazing\" coin является редким предметом и используется в аукционах, которые проводит старшая администрация.",
+      "word_count": 17,
+      "char_count": 136
+    },
+    {
+      "section_id": "fa506df2d790bc80_0003",
+      "heading": "Как получить \"AMAZING\" COIN",
+      "level": 3,
+      "text": "получить \"amazing\" coin возможно только в особых событиях, которые проводит старшая администрация, например, в конкурсах.",
+      "word_count": 15,
+      "char_count": 121
+    }
+  ]
+}

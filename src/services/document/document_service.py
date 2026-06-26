@@ -25,13 +25,4 @@ class DocumentService:
 
     async def process_document(self, file_path: str):
         return await self.processor.process_document(file_path)
-    
-
-        # file_path = Path(file.filename).name
-
-    # with open(file_path, "wb") as f:
-    #     f.write(await file.read())
-    
-    # background_tasks.add_task(processor.process_document, file_path)
-    
-    # return UploadResponse(filename=file.filename, status="processing")
+ 

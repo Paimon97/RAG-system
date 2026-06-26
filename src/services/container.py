@@ -1,3 +1,6 @@
+from src.services.html_parser.HTML_loader import HtmlLoader
+from src.services.html_parser.html_section_parser import HTMLSectionParser
+from src.services.html_parser.html_service import HTMLDocumentService
 from src.services.generator.generator_service import GenerationService
 from src.services.generator.promt_builder import PromptBuilder
 # from src.services.retriever.retriever_service import RetrievalService
@@ -12,13 +15,16 @@ from src.pipeline.processor import DocumentProcessor
 from src.utils.cache import CacheService
 
 from concurrent.futures import ThreadPoolExecutor
+from transformers import AutoTokenizer
 import spacy
+
 
 thread_pool = ThreadPoolExecutor(max_workers=4)
 nlp = spacy.load("ru_core_news_sm")
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 
 embedder = EmbeddingService()
-chunker = TextChunker(nlp_model=nlp)
+chunker = TextChunker(nlp_model=nlp, tokenizer=tokenizer)
 cache = CacheService()
 validator = HallucinationGuard(embedder=embedder)
 
@@ -54,3 +60,4 @@ orchestrator = RAGOrchestrator(
     validator=validator,
     cache=cache
 )
+

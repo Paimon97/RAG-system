@@ -1,16 +1,41 @@
 # Разбивает текст на предложения и собирает предложения в чанки, пока не превышен лимит токенов.
 
+from collections import deque
 from src.config import settings
 
 class TextChunker:
-    def __init__(self, nlp_model):
+    def __init__(self, nlp_model, tokenizer):
         self.nlp = nlp_model
+        self.tokenizer = tokenizer
+
+    def _count_tokens(self, text: str) -> int:
+        return len(
+            self.tokenizer.encode(text, add_special_tokens=False)
+        )
+
+    def _split_long_sentence(self, sentence: str, max_tokens: int) -> list[str]:
+        """
+        Если предложение превышает лимит токенов,
+        режем его по токенам токенизатора.
+        """
+        token_ids = self.tokenizer.encode(sentence, add_special_tokens=False)
+
+        chunks = []
+
+        for i in range(0, len(token_ids), max_tokens):
+            piece = token_ids[i:i + max_tokens]
+
+            chunks.append(self.tokenizer.decode(piece, skip_special_tokens=True))
+
+        return chunks
 
     # Принимает строку и возвращает список чанков
     def _spacy_split(self, text: str) -> list[str]:
         doc = self.nlp(text)
+
         max_tokens = settings.CHUNK_SIZE
-        overlap = settings.CHUNK_OVERLAP
+        min_chunk_tokens = settings.MIN_CHUNK_SIZE
+        overlap_tokens_limit = settings.CHUNK_OVERLAP
 
         # Разбиваем текст на предложения. 
         # doc.sents — генератор, который возвращает предложения
@@ -18,97 +43,76 @@ class TextChunker:
         # Удаляем лишние пробелы в начале и в конце.
         sentences = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
 
-        chunks = []
+        processed_sentences = []
 
-        current_chunk = []
-        current_tokens = 0
-
+        # Обработка длинных предложений
         for sentence in sentences:
-            # Быстрый подсчет количества слов.
-            sent_tokens = len(sentence.split())
 
-            # Если предложение слишком большое,оно пропускается
-            # Насколько это хорошо?
-            if sent_tokens > max_tokens:
+            sent_tokens = self._count_tokens(sentence)
+
+            if sent_tokens <= max_tokens:
+                processed_sentences.append((sentence, sent_tokens))
                 continue
 
-            # Если превышаем лимит → сохраняем чанк
-            if current_tokens + sent_tokens > max_tokens:
-                # Объединяем текущие предложения и добавляем в список chunks
-                chunk_text = " ".join(current_chunk)
-                chunks.append(chunk_text)
-                # ---------- OVERLAP ----------
-                overlap_chunk = [] # список предложений, которые войдут в перекрытие
-                overlap_tokens = 0 # количество токенов в перекрытии
+            subchunks = self._split_long_sentence(sentence, max_tokens)
 
-                # Идем с конца текущего чанка
-                for prev_sentence in reversed(current_chunk):
-                    # считаем количество токенов
-                    prev_tokens = len(prev_sentence.split())
-                    # Если добавление этого предложения превысит overlap — прерываем цикл
-                    if overlap_tokens + prev_tokens > overlap:
+            for subchunk in subchunks:
+                processed_sentences.append(
+                    (
+                        subchunk,
+                        self._count_tokens(subchunk)
+                    )
+                )
+
+        chunks = []
+
+        current_sentences = []
+        current_tokens = 0
+
+        for sentence, sent_tokens in processed_sentences:
+
+            if current_tokens + sent_tokens > max_tokens:
+
+                chunk_text = " ".join(current_sentences)
+
+                if chunk_text.strip():
+                    chunks.append(chunk_text)
+
+                # OVERLAP
+                overlap_sentences = deque()
+                overlap_tokens = 0
+
+                for prev_sentence in reversed(current_sentences):
+
+                    prev_tokens = self._count_tokens(prev_sentence)
+
+                    if (overlap_tokens + prev_tokens > overlap_tokens_limit):
                         break
-                    # Иначе добавляем предложение в начало overlap_chunk и увличиваем счетчик
-                    overlap_chunk.insert(0, prev_sentence)
+
+                    overlap_sentences.appendleft(prev_sentence)
+
                     overlap_tokens += prev_tokens
-                # Новый чанк начинается с overlap
-                current_chunk = overlap_chunk
+
+                current_sentences = list(overlap_sentences)
+
                 current_tokens = overlap_tokens
 
-            # Добавляем текущее предложение
-            current_chunk.append(sentence)
+            current_sentences.append(sentence)
             current_tokens += sent_tokens
 
-        # Последний чанк
-        if current_chunk:
-            chunks.append(" ".join(current_chunk))
+        if current_sentences:
+            chunks.append(" ".join(current_sentences))
 
-        return chunks
+        # Удаляем слишком маленькие чанки
+        filtered_chunks = []
 
+        for chunk in chunks:
 
-    # def _spacy_split(self, text: str) -> list[str]:
-    #     """
-    #     Простая разбивка текста на абзацы.
-    #     Каждый абзац становится отдельным чанком.
-    #     """
-    #     # Разбиваем на абзацы
-    #     paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
-        
-    #     # Если нет двойных переносов, пробуем одиночные
-    #     if not paragraphs:
-    #         paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
-        
-    #     # Если все еще нет абзацев, возвращаем весь текст
-    #     if not paragraphs:
-    #         return [text.strip()] if text.strip() else []
-        
-    #     # Фильтруем слишком большие абзацы (опционально)
-    #     max_tokens = 1024
-    #     filtered_paragraphs = []
-        
-    #     for para in paragraphs:
-    #         para_tokens = len(para.split())
-    #         if para_tokens <= max_tokens:
-    #             filtered_paragraphs.append(para)
-    #         else:
-    #             # Если абзац слишком большой, разбиваем его на предложения
-    #             doc = self.nlp(para)
-    #             sentences = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
-                
-    #             current_chunk = []
-    #             current_tokens = 0
-                
-    #             for sentence in sentences:
-    #                 sent_tokens = len(sentence.split())
-    #                 if current_tokens + sent_tokens > max_tokens:
-    #                     if current_chunk:
-    #                         filtered_paragraphs.append(" ".join(current_chunk))
-    #                         current_chunk = []
-    #                         current_tokens = 0
-    #                 current_chunk.append(sentence)
-    #                 current_tokens += sent_tokens
-                
-    #             if current_chunk:
-    #                 filtered_paragraphs.append(" ".join(current_chunk))
-        
-    #     return filtered_paragraphs if filtered_paragraphs else [text]
+            chunk_tokens = self._count_tokens(chunk)
+
+            if (filtered_chunks and chunk_tokens < min_chunk_tokens):
+                filtered_chunks[-1] += " " + chunk
+            else:
+                filtered_chunks.append(chunk)
+
+        return filtered_chunks

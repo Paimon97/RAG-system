@@ -1,4 +1,4 @@
-from src.services.container import processor, document_manager, cache
+from src.services.container import processor, document_manager, cache, html_loader, html_parser
 from src.services.document.document_service import DocumentService
 from src.services.document.clear_service import ClearService
 from src.services.document.health_service import HealthService
